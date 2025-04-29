@@ -3,10 +3,13 @@ import re
 import requests
 import pyperclip
 
+# API 키를 전역 변수로 선언 (초기에 비워둠)
+api_key = ""
+
 # DeepL API를 사용한 번역 함수
 def translate_text(text, source_lang="EN", target_lang="KO"):
     """DeepL API를 사용하여 텍스트 번역"""
-    api_key = ""  # DeepL API 키를 여기에 입력하세요
+    global api_key
     url = "https://api-free.deepl.com/v2/translate"
     
     data = {
@@ -31,8 +34,7 @@ def process_text():
         success_label.config(text="입력된 텍스트가 없습니다.", fg="red")
         return
 
-    # 기존 줄바꿈 제거
-    text_without_linebreaks = re.sub(r'\n', ' ', text)
+    text_without_linebreaks = re.sub(r'\n', ' ', text) # 기존 줄바꿈 제거
 
     # 약어 및 특수 케이스 처리
     special_cases = ["i.e.,", "e.g.,", "Fig.", "Dr."]
@@ -51,14 +53,14 @@ def process_text():
     # 원문 출력
     original_text_display.delete("1.0", tk.END)
     original_text_display.insert(tk.END, formatted_text)
-    
+
     # 번역 출력
     translated_text_display.delete("1.0", tk.END)
     translated_text_display.insert(tk.END, translated_text)
-    
-    # 클립보드에 복사 (원문)
+
+    # 클립보드에 원문 복사
     try:
-        pyperclip.copy(formatted_text)  # pyperclip으로 텍스트 복사
+        pyperclip.copy(formatted_text) # pyperclip으로 텍스트 복사
         success_label.config(text="결과가 클립보드에 복사되었습니다.", fg="green")
     except Exception as e:
         success_label.config(text=f"클립보드 복사 중 오류 발생: {e}", fg="red")
@@ -70,9 +72,41 @@ def toggle_pin():
     root.wm_attributes("-topmost", is_pinned)
     pin_button.config(text="고정 해제" if is_pinned else "고정")
 
+def ask_api_key():
+    """API 키를 GUI로 입력받는 함수"""
+    def submit_key():
+        global api_key
+        api_key = api_entry.get().strip()
+        if api_key:
+            key_window.destroy()
+        else:
+            error_label.config(text="API 키를 입력하세요.", fg="red")
+
+    key_window = tk.Toplevel()
+    key_window.title("API 키 입력")
+    key_window.geometry("300x150")
+    key_window.attributes('-topmost', True)
+
+    tk.Label(key_window, text="DeepL API 키를 입력하세요:").pack(pady=10)
+    api_entry = tk.Entry(key_window, show="*")
+    api_entry.pack(pady=5)
+
+    submit_button = tk.Button(key_window, text="확인", command=submit_key)
+    submit_button.pack(pady=10)
+
+    error_label = tk.Label(key_window, text="", fg="red")
+    error_label.pack()
+
+    # 메인 창이 대기하도록 (blocking)
+    key_window.grab_set()
+    root.wait_window(key_window)
+
 # GUI 생성
 root = tk.Tk()
 root.title("텍스트 처리기")
+
+# API 키 입력창 먼저 띄우기
+ask_api_key()
 
 # 초기 고정 상태
 is_pinned = True
